@@ -1,0 +1,15 @@
+Package: gestalt
+Type: Package
+Title: Tidyverse Verbs for Advanced Mathematical Bounds
+Version: 0.1.0
+Author: Vivian Sweetbrier & The Clanker King
+Maintainer: Vivian Sweetbrier <vivian@example.com>
+Description: A Tidyverse-compatible R package that implements actionable data science optimizations and bounding operators extracted directly from theoretical mathematical manuscripts (including the Hodge Conjecture, Free Group Factors, and Unique Games).
+License: AGPL-3.0
+Encoding: UTF-8
+LazyData: true
+Imports: 
+    dplyr,
+    rlang,
+    magrittr,
+    tidyr
