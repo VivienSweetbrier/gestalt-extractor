@@ -1,0 +1,129 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{algorithm,algpseudocode}
+\usepackage{hyperref}
+
+% ==============================================================================
+% Preamble Configurations & Custom Macro Definitions
+% (The parser must strip these preamble blocks and macros cleanly)
+% ==============================================================================
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\N}{\mathcal{N}}
+\DeclareMathOperator{\Tr}{Tr}
+\DeclareMathOperator{\diag}{diag}
+\DeclareMathOperator{\rank}{rank}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{definition}[theorem]{Definition}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+\title{Spectral Bounds and Accelerated Convergence in Low-Rank Optimizer Dynamics}
+\author{Gestalt Research Group \and Sweetbrier Theoretical Intelligence}
+\date{October 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We establish deterministic asymptotic bounds and convergence guarantees for low-rank gradient spectral equalization and moving-average momentum filtering in overparameterized optimization landscapes. We prove that randomized singular value decomposition equalizes the active parameter spectrum in polynomial time $\mathcal{O}(n^2 \log n)$, eliminating ill-conditioned stiffness while strictly bounding gradient variance under stochastic perturbations.
+\end{abstract}
+
+% Section 1: Introduction and Problem Formulation
+\section{Introduction and Mathematical Setup}
+
+In overparameterized deep neural network tuning, the empirical gradient trajectory exhibits severe multi-scale anisotropy. High-frequency noise components dominate the instantaneous loss gradient, while slow-varying modes govern generalization and semantic feature alignment. 
+
+Let $\theta \in \R^d$ denote the parameter vector and $\mathcal{L}(\theta) = \E_{x \sim \mathcal{D}}[\ell(x; \theta)]$ the risk objective. The empirical batch gradient matrix across layer transformations is represented as $\mathbf{G} \in \R^{m \times d}$ with $m \le d$. In standard gradient descent, ill-conditioned curvature leads to exponential slowdowns along low-curvature eigenspaces.
+
+\begin{definition}[Singular Spectrum Equalization Operator]
+Let $\mathbf{G} \in \R^{m \times d}$ denote the empirical gradient matrix with rank $r = \rank(\mathbf{G}) \le \min(m, d)$. The compact singular value decomposition (SVD) is given by:
+\begin{equation}
+\mathbf{G} = \mathbf{U}_r \mathbf{\Sigma}_r \mathbf{V}_r^T = \sum_{i=1}^r \sigma_i \mathbf{u}_i \mathbf{v}_i^T
+\end{equation}
+where $\mathbf{U}_r \in \R^{m \times r}$ and $\mathbf{V}_r \in \R^{d \times r}$ have orthonormal columns, and $\mathbf{\Sigma}_r = \diag(\sigma_1, \dots, \sigma_r)$ with $\sigma_1 \ge \sigma_2 \ge \dots \ge \sigma_r > 0$. The Egalitarian Spectral Equalization operator $\mathcal{T}_{\text{EGD}}(\mathbf{G})$ is defined as:
+\begin{equation}
+\mathcal{T}_{\text{EGD}}(\mathbf{G}) \triangleq \mathbf{U}_r \mathbf{V}_r^T = \mathbf{G} (\mathbf{G}^T \mathbf{G})^{-1/2}
+\end{equation}
+which maps all positive singular values to unity while preserving the kernel $\ker(\mathbf{G})$.
+\end{definition}
+
+% Section 2: Complexity Bounds
+\section{Algorithmic Formulation and Complexity Bounds}
+
+Computing the exact full singular value decomposition of $\mathbf{G} \in \R^{n \times d}$ incurs cubic computational complexity $\mathcal{O}(n d^2)$, which is intractable during per-step optimizer execution. We evaluate randomized low-rank subspace projection with target rank $k \ll \min(n, d)$.
+
+\begin{theorem}[Polynomial-Time Bound on Randomized Low-Rank Spectral Equalization]
+Let $\mathbf{G} \in \R^{n \times d}$ with $n \ge d$. Under randomized Gaussian subspace projection with oversampling parameter $p \ge 5$ and power iterations $q \ge 2$, computing the truncated spectral approximation $\mathbf{\tilde{G}}_k = \mathbf{U}_k \mathbf{V}_k^T$ satisfies the asymptotic time complexity bound:
+\begin{equation}
+\mathcal{T}_{\text{compute}}(n, d, k) = \mathcal{O}(n d \log k + (n + d) k^2)
+\end{equation}
+Furthermore, for square weight matrices where $n = d$ and target rank $k = \mathcal{O}(\log n)$, the total per-step computation is strictly polynomial:
+\begin{equation}
+\mathcal{T}_{\text{step}}(n) = \mathcal{O}(n^2 \log n)
+\end{equation}
+with deterministic operator norm error bound:
+\begin{equation}
+\|\mathbf{G} - \mathbf{U}_k \mathbf{\Sigma}_k \mathbf{V}_k^T\|_2 \le \left(1 + 4 \sqrt{\frac{2 k}{p - 1}}\right) \sigma_{k+1}
+\end{equation}
+\end{theorem}
+
+\begin{proof}
+Drawing a random Gaussian test matrix $\mathbf{\Omega} \in \R^{d \times (k + p)}$ requires $\mathcal{O}(d(k+p))$ operations. Computing the sketch $\mathbf{Y} = (\mathbf{G} \mathbf{G}^T)^q \mathbf{G} \mathbf{\Omega}$ requires $2q + 1$ matrix-matrix multiplications, bounded by $\mathcal{O}(q n d (k + p))$. Orthonormalization via unpivoted QR factorization costs $\mathcal{O}(n (k + p)^2)$. Forming the projected matrix $\mathbf{B} = \mathbf{Q}^T \mathbf{G} \in \R^{(k+p) \times d}$ costs $\mathcal{O}(n d (k+p))$, and computing the SVD of $\mathbf{B}$ costs $\mathcal{O}(d (k+p)^2)$. Summing terms with $k = \mathcal{O}(\log n)$ yields the claimed $\mathcal{O}(n^2 \log n)$ bound.
+\end{proof}
+
+\begin{algorithm}[H]
+\caption{Randomized Egalitarian Gradient Descent with EMA Filtering}
+\begin{algorithmic}[1]
+\Require Gradient matrix $\mathbf{G} \in \R^{m \times d}$, momentum buffer $\mathbf{M} \in \R^{m \times d}$, decay $\alpha \in [0.95, 0.99]$, amplification $\lambda \in [1.0, 3.0]$, target rank $k$
+\Ensure Equalized update matrix $\mathbf{G}' \in \R^{m \times d}$
+\State $\mathbf{M} \gets \alpha \mathbf{M} + (1 - \alpha) \mathbf{G}$ \Comment{Update low-pass momentum filter}
+\State $\mathbf{G}_{\text{amp}} \gets \mathbf{G} + \lambda \mathbf{M}$ \Comment{Amplify generalizing gradient components}
+\State Sample Gaussian matrix $\mathbf{\Omega} \sim \N(0, 1)^{d \times (k + 5)}$
+\State Form sample sketch $\mathbf{Y} \gets \mathbf{G}_{\text{amp}} \mathbf{\Omega}$
+\State Compute orthonormal basis $\mathbf{Q} \gets \mathrm{qr}(\mathbf{Y}).\mathrm{Q}$
+\State Form low-rank projection $\mathbf{B} \gets \mathbf{Q}^T \mathbf{G}_{\text{amp}}$
+\State Compute compact SVD: $\mathbf{\tilde{U}}, \mathbf{\Sigma}, \mathbf{V}^T \gets \mathrm{svd}(\mathbf{B})$
+\State Set equalized matrix $\mathbf{G}' \gets (\mathbf{Q} \mathbf{\tilde{U}}) \mathbf{V}^T$
+\State \Return $\mathbf{G}'$
+\end{algorithmic}
+\end{algorithm}
+
+% Section 3: Variance Bounds and Convergence
+\section{Stochastic Variance Bounds and Parameter Constraints}
+
+We now analyze the variance amplification induced by the linear combination of the raw gradient and its exponential moving average.
+
+\begin{lemma}[Bounded Variance under EMA Filter Dynamics]
+Let $\mathbf{g}_t = \nabla \mathcal{L}(\theta_t) + \xi_t$ be an unbiased stochastic gradient estimator with noise covariance $\E[\xi_t \xi_t^T] \preceq \sigma^2 \mathbf{I}$. Let $\mathbf{m}_t = \alpha \mathbf{m}_{t-1} + (1 - \alpha) \mathbf{g}_t$ with decay parameter $\alpha \in [0.90, 0.999]$. Then the amplified gradient $\mathbf{g}'_t = \mathbf{g}_t + \lambda \mathbf{m}_t$ with amplification factor $\lambda \in [0.5, 5.0]$ has strictly bounded variance:
+\begin{align}
+\E\left[\|\mathbf{g}'_t - \E[\mathbf{g}'_t]\|^2\right] &\le \sigma^2 \left( 1 + 2 \lambda \frac{1 - \alpha}{1 + \alpha} + \lambda^2 \frac{1 - \alpha}{1 + \alpha} \right) \\
+&= \sigma^2 \left( 1 + \frac{1 - \alpha}{1 + \alpha} \lambda (\lambda + 2) \right) = \mathcal{O}(\sigma^2)
+\end{align}
+In particular, for $\alpha = 0.98$ and $\lambda = 2.0$, the variance multiplier is strictly bounded by $1.081 \sigma^2$, preserving optimization stability with over 98.5\% empirical confidence.
+\end{lemma}
+
+\begin{proposition}[Hessian Condition Number Bound under Weight Decay]
+Let $\mathbf{H}_t = \nabla^2 \mathcal{L}(\theta_t)$ denote the local Hessian with eigenvalues $\lambda_1 \ge \dots \ge \lambda_d \ge 0$. Under decoupled weight decay parameter $\gamma \in [10^{-4}, 10^{-1}]$ and learning rate step size $\eta \in [10^{-5}, 10^{-2}]$, the effective condition number $\kappa_{\text{eff}}$ of the regularized optimization operator satisfies:
+\begin{equation}
+\kappa_{\text{eff}} \le \frac{\lambda_1 + \gamma}{\lambda_d + \gamma} \le 1 + \frac{\lambda_1}{\gamma} = \mathcal{O}\left(\frac{\|\mathbf{H}\|_2}{\gamma}\right)
+\end{equation}
+ensuring exponential convergence to a stationary point with rate $\rho = 1 - \mathcal{O}(\eta \gamma)$.
+\end{proposition}
+
+\begin{corollary}[Spectral Invariance Guarantee]
+Under the equalization operator $\mathcal{T}_{\text{EGD}}$, the condition number of the transformed gradient matrix satisfies:
+\begin{equation}
+\kappa(\mathcal{T}_{\text{EGD}}(\mathbf{G})) = \frac{\sigma_{\max}(\mathbf{G}')}{\sigma_{\min}(\mathbf{G}')} = 1.0
+\end{equation}
+for all singular modes within the active support subspace $\mathrm{supp}(\mathbf{\Sigma}_r)$.
+\end{corollary}
+
+\section{Conclusion}
+The combination of randomized low-rank projection and exponential moving average momentum establishes a polynomial-time $\mathcal{O}(n^2 \log n)$ framework that provably equalizes spectral convergence timescales while maintaining strictly bounded gradient variance.
+
+\end{document}
